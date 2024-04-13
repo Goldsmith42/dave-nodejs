@@ -1,0 +1,27 @@
+{
+  "name": "dave-nodejs",
+  "version": "0.0.1",
+  "description": "Dangerous Dave in Node.js, based on MaiZure's C implementation",
+  "main": "src/game/index.ts",
+  "scripts": {
+    "start": "ts-node ./src/game/index.ts",
+    "extract:tiles": "ts-node ./src/extract/extract-tiles.ts",
+    "extract:levels": "ts-node ./src/extract/extract-levels.ts",
+    "extract": "ts-node ./src/extract/extract.ts"
+  },
+  "repository": {
+    "url": "https://github.com/Goldsmith42/dave-nodejs"
+  },
+  "author": "Zlatko Andonovski (https://github.com/Goldsmith42)",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.12.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.4"
+  },
+  "dependencies": {
+    "@kmamal/sdl": "^0.10.4",
+    "canvas": "^2.11.2",
+    "jimp": "^0.22.12"
+  }
+}

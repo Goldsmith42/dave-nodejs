@@ -1,0 +1,10 @@
+# Original game assets. These should not be committed.
+assets
+
+# The original game location where I keep the original game files for easier access.
+original-game
+
+# Various other utilities that should not be committed or are platform-specific, like UNLZEXE.
+utils
+
+node_modules
