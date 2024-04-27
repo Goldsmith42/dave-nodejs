@@ -1,17 +1,23 @@
 import * as path from 'path';
-import { video, Sdl } from "@kmamal/sdl";
+import { promises as fs } from 'fs';
+import { video, Sdl } from '@kmamal/sdl';
 
-import { DaveLevel } from "../common/dave-level";
-import { BinaryFileReader } from '../common/binary-file-reader';
-import { GameAssets, GameRenderer } from './renderer';
 import { TileType } from './tile-type';
 import { InputReader } from './input-reader';
+import { GameAssets, GameRenderer } from './renderer';
+import { DaveLevel } from '../common/dave-level';
 import { getAssetsDir } from '../common/file-utils';
+import { BinaryFileReader } from '../common/binary-file-reader';
 
 enum Direction {
 	Left = -1,
 	Neutral = 0,
 	Right = 1
+}
+
+enum GameMode {
+	Title,
+	Gameplay
 }
 
 interface MonsterProperties {
@@ -82,6 +88,9 @@ interface GameState {
 	collisionPoints: boolean[];
 	monsters: Monster[];
 	levels: DaveLevel[];
+	titleLevel: Buffer;
+
+	mode: GameMode;
 }
 
 class Game {
@@ -133,6 +142,7 @@ class Game {
 		this.game.daveLeft = false;
 		this.game.daveJump = false;
 		this.game.checkDoor = false;
+		this.game.mode = GameMode.Title;
 
 		this.game.collisionPoints = [];
 
@@ -142,11 +152,12 @@ class Game {
 		}
 
 		this.game.levels = [];
+		const assetsDir = getAssetsDir('levels/');
 		for (let j = 0; j < 10; j++) {
 			this.game.levels[j] = new DaveLevel();
 
 			const filename = `level${j}.dat`;
-			using reader = new BinaryFileReader(path.join(getAssetsDir('levels/'), filename));
+			using reader = new BinaryFileReader(path.join(assetsDir, filename));
 			for (let i = 0; i < DaveLevel.PATH_SIZE; i++) {
 				this.game.levels[j].path[i] = await reader.readByte();
 			}
@@ -156,6 +167,12 @@ class Game {
 			for (let i = 0; i < DaveLevel.PADDING_SIZE; i++) {
 				this.game.levels[j].padding[i] = await reader.readByte();
 			}
+		}
+
+		this.game.titleLevel = Buffer.alloc(DaveLevel.TITLE_TILES_SIZE);
+		using reader = new BinaryFileReader(path.join(assetsDir, 'leveltitle.dat'));
+		for (let i = 0; i < this.game.titleLevel.length; i++) {
+			this.game.titleLevel[i] = await reader.readByte();
 		}
 	}
 
@@ -357,25 +374,34 @@ class Game {
 			throw new Error("Input reader is not initialized");
 		}
 
-		if (this.inputReader.isKeyDown('right')) { this.game.tryRight = true; }
-		if (this.inputReader.isKeyDown('left')) { this.game.tryLeft = true; }
-		if (this.inputReader.isKeyDown('up')) { this.game.tryJump = true; }
-		if (this.inputReader.isKeyDown('down')) { this.game.tryDown = true; }
-		if (this.inputReader.isKeyDown('ctrl')) { this.game.tryFire = true; }
-		if (this.inputReader.isKeyDown('alt')) { this.game.tryJetpack = true; }
+		if (this.game.mode === GameMode.Gameplay) {
+			if (this.inputReader.isKeyDown('right')) { this.game.tryRight = true; }
+			if (this.inputReader.isKeyDown('left')) { this.game.tryLeft = true; }
+			if (this.inputReader.isKeyDown('up')) { this.game.tryJump = true; }
+			if (this.inputReader.isKeyDown('down')) { this.game.tryDown = true; }
+			if (this.inputReader.isKeyDown('ctrl')) { this.game.tryFire = true; }
+			if (this.inputReader.isKeyDown('alt')) { this.game.tryJetpack = true; }
+		} else if (this.game.mode === GameMode.Title) {
+			if (['return', 'space', 'ctrl', 'alt'].some(key => this.inputReader!.isKeyDown(key))) {
+				this.game.mode = GameMode.Gameplay;
+				this.startLevel();
+			}
+		}
 	}
 
 	public update() {
-		this.checkCollision();
-		this.pickupItem(this.game.checkPickupX, this.game.checkPickupY);
-		this.updateDBullet();
-		this.updateEBullet();
-		this.verifyInput();
-		this.moveDave();
-		this.moveMonsters();
-		this.fireMonsters();
-		this.scrollScreen();
-		this.applyGravity();
+		if (this.game.mode === GameMode.Gameplay) {
+			this.checkCollision();
+			this.pickupItem(this.game.checkPickupX, this.game.checkPickupY);
+			this.updateDBullet();
+			this.updateEBullet();
+			this.verifyInput();
+			this.moveDave();
+			this.moveMonsters();
+			this.fireMonsters();
+			this.scrollScreen();
+			this.applyGravity();
+		}
 		this.updateLevel();
 		this.clearInput();
 	}
@@ -384,10 +410,12 @@ class Game {
 		renderer.startScreen(window);
 
 		this.drawWorld(renderer, assets);
-		this.drawDave(renderer, assets);
-		this.drawMonsters(renderer, assets);
-		this.drawDaveBullet(renderer, assets);
-		this.drawMonsterBullet(renderer, assets);
+		if (this.game.mode === GameMode.Gameplay) {
+			this.drawDave(renderer, assets);
+			this.drawMonsters(renderer, assets);
+			this.drawDaveBullet(renderer, assets);
+			this.drawMonsterBullet(renderer, assets);
+		}
 		this.drawUI(renderer, assets);
 
 		renderer.render();
@@ -746,29 +774,29 @@ class Game {
 			case TileType.Jetpack:
 				this.game.jetpack = 0xff;
 				break;
-			case TileType.Trophy:
+			case TileType.TrophyStart:
 				this.addScore(1000);
 				this.game.trophy = true;
 				break;
 			case TileType.Gun:
 				this.game.gun = true;
 				break;
-			case 47 as TileType:
+			case TileType.BlueDiamond:
 				this.addScore(100);
 				break;
-			case 48 as TileType:
+			case TileType.PurpleBall:
 				this.addScore(50);
 				break;
-			case 49 as TileType:
+			case TileType.RedDiamond:
 				this.addScore(150);
 				break;
-			case 50 as TileType:
+			case TileType.Crown:
 				this.addScore(300);
 				break;
-			case 51 as TileType:
+			case TileType.Ring:
 				this.addScore(200);
 				break;
-			case 52 as TileType:
+			case TileType.Wand:
 				this.addScore(500);
 				break;
 		}
@@ -839,11 +867,12 @@ class Game {
 	private updateFrame(tile: TileType, salt: number): TileType {
 		let mod: number;
 		switch (tile) {
-			case 6 as TileType: mod = 4; break;
-			case 10 as TileType: mod = 5; break;
-			case 25 as TileType: mod = 4; break;
-			case 36 as TileType: mod = 5; break;
-			case 129 as TileType: mod = 4; break;
+			case TileType.FireStart: mod = 4; break;
+			case TileType.TrophyStart: mod = 5; break;
+			case TileType.WeedStart: mod = 4; break;
+			case TileType.WaterStart: mod = 5; break;
+			case TileType.ExplosionStart: mod = 4; break;
+			case TileType.TitleStart: mod = 4; break;
 			default: mod = 1; break;
 		}
 
@@ -851,21 +880,39 @@ class Game {
 	}
 
 	private drawWorld(renderer: GameRenderer, assets: GameAssets) {
-		for (let j = 0; j < 10; j++) {
-			const y = Game.TILE_SIZE + j * Game.TILE_SIZE;
-			const width = Game.TILE_SIZE;
-			const height = Game.TILE_SIZE;
-			for (let i = 0; i < 20; i++) {
-				const x = i * Game.TILE_SIZE;
-				let tileIndex = this.getTile(this.game.viewX + i, j);
-				tileIndex = this.updateFrame(tileIndex, i);
-				if (tileIndex >= assets.graphicsTiles.length) {
-					throw new Error(`Tile index error: ${tileIndex} for ${i}, ${j} at ${this.game.tick}`);
+		if (this.game.mode === GameMode.Gameplay) {
+			for (let j = 0; j < 10; j++) {
+				const y = Game.TILE_SIZE + j * Game.TILE_SIZE;
+				// TODO: For the last y, only draw the upper third
+				const width = Game.TILE_SIZE;
+				const height = Game.TILE_SIZE;
+				for (let i = 0; i < 20; i++) {
+					const x = i * Game.TILE_SIZE;
+					let tileIndex = this.getTile(this.game.viewX + i, j);
+					tileIndex = this.updateFrame(tileIndex, i);
+					if (tileIndex >= assets.graphicsTiles.length) {
+						throw new Error(`Tile index error: ${tileIndex} for ${i}, ${j} at ${this.game.tick}`);
+					}
+					renderer.drawCanvas(assets.graphicsTiles[tileIndex], { x, y, width, height });
 				}
-				renderer.drawCanvas(assets.graphicsTiles[tileIndex], { x, y, width, height });
+			}
+		} else if (this.game.mode === GameMode.Title) {
+			for (let j = 0; j < 7; j++) {
+				const y = Game.TILE_SIZE + (j + 3) * Game.TILE_SIZE;
+				// TODO: For the last y, only draw the upper third
+				const width = Game.TILE_SIZE;
+				const height = Game.TILE_SIZE;
+				for (let i = 0; i < 10; i++) {
+					const x = (i + 5) * Game.TILE_SIZE;
+					let tileIndex = this.game.titleLevel[j * 10 + i];
+					tileIndex = this.updateFrame(tileIndex, i);
+					if (tileIndex >= assets.graphicsTiles.length) {
+						throw new Error(`Tile index error: ${tileIndex} for ${i}, ${j} at ${this.game.tick}`);
+					}
+					renderer.drawCanvas(assets.graphicsTiles[tileIndex], { x, y, width, height });
+				}
 			}
 		}
-
 	}
 
 	private drawDave(renderer: GameRenderer, assets: GameAssets) {
@@ -878,7 +925,7 @@ class Game {
 		}
 
 		if (this.game.daveJetpack) {
-			tileIndex = this.game.lastDir >= Direction.Neutral ? TileType.JetpackRight : TileType.JetpackLeft;
+			tileIndex = this.game.lastDir >= Direction.Neutral ? TileType.JetpackRightStart : TileType.JetpackLeftEnd;
 		} else {
 			if (this.game.daveJump || !this.game.onGround) {
 				tileIndex = this.game.lastDir >= Direction.Neutral ? TileType.DaveJumpRight : TileType.DaveJumpLeft;
@@ -940,86 +987,111 @@ class Game {
 	}
 
 	private drawUI(renderer: GameRenderer, assets: GameAssets) {
-		const dest = {
-			x: 0,
-			y: 16,
-			width: 960,
-			height: 1
-		};
-		const white = `rgb(${0xee}, ${0xee}, ${0xee})`;
-		renderer.drawColor(white, dest);
-		dest.y = 176;
-		renderer.drawColor(white, dest);
+		if (this.game.mode === GameMode.Gameplay) {
+			const dest = {
+				x: 0,
+				y: 16,
+				width: 960,
+				height: 1
+			};
+			const white = `rgb(${0xee}, ${0xee}, ${0xee})`;
+			renderer.drawColor(white, dest);
+			dest.y = 176;
+			renderer.drawColor(white, dest);
 
-		dest.x = 1;
-		dest.y = 2;
-		dest.width = 62;
-		dest.height = 11;
-		renderer.drawCanvas(assets.graphicsTiles[TileType.UIScoreBanner], dest);
-
-		dest.x = 120;
-		renderer.drawCanvas(assets.graphicsTiles[TileType.UILevelBanner], dest);
-
-		dest.x = 200;
-		renderer.drawCanvas(assets.graphicsTiles[TileType.UILivesBanner], dest);
-
-		dest.x = 64;
-		dest.width = 8;
-		dest.height = 11;
-		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 10000) % 10], dest);
-		dest.x += 8;
-		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 1000) % 10], dest);
-		dest.x += 8;
-		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 100) % 10], dest);
-		dest.x += 8;
-		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 10) % 10], dest);
-		dest.x += 8;
-		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0], dest);
-
-		dest.x = 170;
-		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~((this.game.currentLevel + 1) / 10)], dest);
-		dest.x += 8;
-		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + (this.game.currentLevel + 1) % 10], dest);
-
-		for (let i = 0; i < this.game.lives; i++) {
-			dest.width = 16;
-			dest.height = 12;
-			dest.x = (255 + dest.width * i);
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UIIconLife], dest);
-		}
-
-		if (this.game.trophy) {
-			dest.x = 72;
-			dest.y = 180;
-			dest.width = 176;
-			dest.height = 14;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UIMessageTrophy], dest);
-		}
-
-		if (this.game.gun) {
-			dest.x = 255;
-			dest.y = 180;
-			dest.width = 62;
-			dest.height = 11;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UIIconGun], dest);
-		}
-
-		if (this.game.jetpack) {
 			dest.x = 1;
-			dest.y = 177;
+			dest.y = 2;
 			dest.width = 62;
 			dest.height = 11;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UIIconJetpack], dest);
+			renderer.drawCanvas(assets.graphicsTiles[TileType.UIScoreBanner], dest);
 
-			dest.y = 190;
-			dest.height = 8;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UIBarJetpack], dest);
+			dest.x = 120;
+			renderer.drawCanvas(assets.graphicsTiles[TileType.UILevelBanner], dest);
 
-			dest.x = 2;
-			dest.y = 192;
-			dest.width = this.game.jetpack * 0.23;
-			dest.height = 4;
-			renderer.drawColor(`rgb(${0xee}, 0, 0)`, dest);
+			dest.x = 200;
+			renderer.drawCanvas(assets.graphicsTiles[TileType.UILivesBanner], dest);
+
+			dest.x = 64;
+			dest.width = 8;
+			dest.height = 11;
+			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 10000) % 10], dest);
+			dest.x += 8;
+			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 1000) % 10], dest);
+			dest.x += 8;
+			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 100) % 10], dest);
+			dest.x += 8;
+			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 10) % 10], dest);
+			dest.x += 8;
+			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0], dest);
+
+			dest.x = 170;
+			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~((this.game.currentLevel + 1) / 10)], dest);
+			dest.x += 8;
+			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + (this.game.currentLevel + 1) % 10], dest);
+
+			for (let i = 0; i < this.game.lives; i++) {
+				dest.width = 16;
+				dest.height = 12;
+				dest.x = (255 + dest.width * i);
+				renderer.drawCanvas(assets.graphicsTiles[TileType.UIIconLife], dest);
+			}
+
+			if (this.game.trophy) {
+				dest.x = 72;
+				dest.y = 180;
+				dest.width = 176;
+				dest.height = 14;
+				renderer.drawCanvas(assets.graphicsTiles[TileType.UIMessageTrophy], dest);
+			}
+
+			if (this.game.gun) {
+				dest.x = 255;
+				dest.y = 180;
+				dest.width = 62;
+				dest.height = 11;
+				renderer.drawCanvas(assets.graphicsTiles[TileType.UIIconGun], dest);
+			}
+
+			if (this.game.jetpack) {
+				dest.x = 1;
+				dest.y = 177;
+				dest.width = 62;
+				dest.height = 11;
+				renderer.drawCanvas(assets.graphicsTiles[TileType.UIIconJetpack], dest);
+
+				dest.y = 190;
+				dest.height = 8;
+				renderer.drawCanvas(assets.graphicsTiles[TileType.UIBarJetpack], dest);
+
+				dest.x = 2;
+				dest.y = 192;
+				dest.width = this.game.jetpack * 0.23;
+				dest.height = 4;
+				renderer.drawColor(`rgb(${0xee}, 0, 0)`, dest);
+			}
+		} else {
+			const dest = {
+				x: 104,	// half of (width of the screen - width of the title)
+				y: 0,
+				width: 112,
+				height: 47
+			};
+			renderer.drawCanvas(assets.graphicsTiles[this.updateFrame(TileType.TitleStart, 0)], dest);
+
+			const fontSize = (Game.TILE_SIZE - 2) / 2;
+
+			dest.y = 51;
+			dest.x = 123;
+			dest.width = 320;
+			renderer.drawText(assets.text.title, fontSize, dest);
+
+			dest.y = 59;
+			dest.x = 108;
+			renderer.drawText(assets.text.subtitle, fontSize, dest);
+
+			dest.y = 185;
+			dest.x = 100;
+			renderer.drawText(assets.text.helpPrompt, fontSize, dest);
 		}
 	}
 
@@ -1032,20 +1104,20 @@ class Game {
 			return true;
 		}
 		switch (type) {
-			case 1 as TileType:
-			case 3 as TileType:
-			case 5 as TileType:
-			case 15 as TileType:
-			case 16 as TileType:
-			case 17 as TileType:
-			case 18 as TileType:
-			case 19 as TileType:
-			case 21 as TileType:
-			case 22 as TileType:
-			case 23 as TileType:
-			case 24 as TileType:
-			case 29 as TileType:
-			case 30 as TileType:
+			case TileType.Rock:
+			case TileType.SilverBar:
+			case TileType.BlueBrick:
+			case TileType.PipeHorizontal:
+			case TileType.PipeVertical:
+			case TileType.RedBrick:
+			case TileType.NormalRock:
+			case TileType.BlueWall:
+			case TileType.RockSlope1:
+			case TileType.RockSlope2:
+			case TileType.RockSlope3:
+			case TileType.RockSlope4:
+			case TileType.PurpleBarVertical:
+			case TileType.PurpleBarHorizontal:
 				return false;
 		}
 
@@ -1056,20 +1128,20 @@ class Game {
 					break;
 
 				case TileType.Jetpack:
-				case TileType.Trophy:
+				case TileType.TrophyStart:
 				case TileType.Gun:
-				case 47 as TileType:
-				case 48 as TileType:
-				case 49 as TileType:
-				case 50 as TileType:
-				case 51 as TileType:
-				case 52 as TileType:
+				case TileType.BlueDiamond:
+				case TileType.PurpleBall:
+				case TileType.RedDiamond:
+				case TileType.Crown:
+				case TileType.Ring:
+				case TileType.Wand:
 					this.game.checkPickupX = gridX;
 					this.game.checkPickupY = gridY;
 					break;
-				case 6 as TileType:
-				case 25 as TileType:
-				case 36 as TileType:
+				case TileType.FireStart:
+				case TileType.WeedStart:
+				case TileType.WaterStart:
 					if (!this.game.daveDeadTimer) {
 						this.game.daveDeadTimer = 30;
 					}
@@ -1093,6 +1165,15 @@ class Game {
 	}
 }
 
+async function loadText() {
+	const assetsDir = getAssetsDir('text/');
+	return {
+		title: await fs.readFile(path.join(assetsDir, 'title.txt'), 'ascii'),
+		subtitle: await fs.readFile(path.join(assetsDir, 'subtitle.txt'), 'ascii'),
+		helpPrompt: await fs.readFile(path.join(assetsDir, 'helpprompt.txt'), 'ascii')
+	};
+}
+
 async function main() {
 	const DISPLAY_SCALE = 3;
 
@@ -1101,11 +1182,11 @@ async function main() {
 
 	const window = video.createWindow({ width: 320 * DISPLAY_SCALE, height: 200 * DISPLAY_SCALE });
 	const renderer = new GameRenderer(DISPLAY_SCALE);
-	const assets = await renderer.loadAssets();
+	const graphicsTiles = await renderer.loadAssets();
+	const text = await loadText();
 
 	game.initInput(window);
-	game.startLevel();
-	const windowClosed = await game.runLoop(window, renderer, assets);
+	const windowClosed = await game.runLoop(window, renderer, { graphicsTiles, text });
 	if (!windowClosed) {
 		window.destroy();
 	}

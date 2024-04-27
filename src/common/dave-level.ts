@@ -3,6 +3,8 @@ export class DaveLevel {
     public static readonly TILES_SIZE = 1000;
     public static readonly PADDING_SIZE = 24;
 
+    public static readonly TITLE_TILES_SIZE = 10 * 7;
+
     public readonly path: Int8Array;
     public readonly tiles: Buffer;
     public readonly padding: Buffer;

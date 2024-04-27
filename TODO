@@ -1,9 +1,11 @@
 [ ] Improve collision detection
 [ ] Mask some of the remaining graphics sprites (bullets come to mind)
 [ ] Fix enemies that fire too often
-[ ] Warp zones?
-[ ] Title screen
-[ ] Sound
+[ ] Do not draw entire last tile
+[ ] Warp zones
+[ ] Better font for title screen?
+[ ] Sound (not at all easy!)
 [ ] Level transitions
 [ ] High scores
+[ ] Other interface things
 [ ] Build executable

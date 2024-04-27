@@ -19,7 +19,7 @@ Run `npm i` to install all of the required dependencies.
 
 ### Extracting the assets
 
-Before running the game, you have to extract the original VGA graphics and level data from the game executable. To do this, you first need to use `UNLZEXE` to decompress the original `DAVE.EXE` file. MaiZure's videos provide instructions on how to do this using DOSBox, but it's much simpler to use a modern version of `UNLZEXE` for your system.
+Before running the game, you have to extract the original VGA graphics, level data and text from the game executable. To do this, you first need to use `UNLZEXE` to decompress the original `DAVE.EXE` file. MaiZure's videos provide instructions on how to do this using DOSBox, but it's much simpler to use a modern version of `UNLZEXE` for your system.
 
 Next, you need to extract the assets. You can do this by running `npm run extract -- ./DAVE.EXENEW`, substituting `./DAVE.EXENEW` for the path to your uncompressed Dave executable. If you run `npm run extract` without specifying an executable argument, the script will attempt to read the file from `original-game/DAVE.EXENEW` in the project folder.
 
