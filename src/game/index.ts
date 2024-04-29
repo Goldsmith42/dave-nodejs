@@ -191,110 +191,110 @@ class Game {
 
 		switch (this.game.currentLevel) {
 			case 2:
-				this.game.monsters[0].type = TileType.MonsterSpider;
+				this.game.monsters[0].type = TileType.MonsterSpiderStart;
 				this.game.monsters[0].monsterPx = 44 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 4 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = TileType.MonsterSpider;
+				this.game.monsters[1].type = TileType.MonsterSpiderStart;
 				this.game.monsters[1].monsterPx = 59 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 4 * Game.TILE_SIZE;
 				break;
 			case 3:
-				this.game.monsters[0].type = TileType.MonsterPurpleThing;
+				this.game.monsters[0].type = TileType.MonsterPurpleThingStart;
 				this.game.monsters[0].monsterPx = 32 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 2 * Game.TILE_SIZE;
 				break;
 			case 4:
-				this.game.monsters[0].type = 97 as TileType;
+				this.game.monsters[0].type = TileType.MonsterRedSunStart;
 				this.game.monsters[0].monsterPx = 15 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 3 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = 97 as TileType;
+				this.game.monsters[1].type = TileType.MonsterRedSunStart;
 				this.game.monsters[1].monsterPx = 33 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 3 * Game.TILE_SIZE;
 
-				this.game.monsters[2].type = 97 as TileType;
+				this.game.monsters[2].type = TileType.MonsterRedSunStart;
 				this.game.monsters[2].monsterPx = 49 * Game.TILE_SIZE;
 				this.game.monsters[2].monsterPy = 3 * Game.TILE_SIZE;
 				break;
 			case 5:
-				this.game.monsters[0].type = 101 as TileType;
+				this.game.monsters[0].type = TileType.MonsterGreenBarStart;
 				this.game.monsters[0].monsterPx = 10 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 8 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = 101 as TileType;
+				this.game.monsters[1].type = TileType.MonsterGreenBarStart;
 				this.game.monsters[1].monsterPx = 28 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 8 * Game.TILE_SIZE;
 
-				this.game.monsters[2].type = 101 as TileType;
+				this.game.monsters[2].type = TileType.MonsterGreenBarStart;
 				this.game.monsters[2].monsterPx = 45 * Game.TILE_SIZE;
 				this.game.monsters[2].monsterPy = 5 * Game.TILE_SIZE;
 
-				this.game.monsters[3].type = 101 as TileType;
+				this.game.monsters[3].type = TileType.MonsterGreenBarStart;
 				this.game.monsters[3].monsterPx = 40 * Game.TILE_SIZE;
 				this.game.monsters[3].monsterPy = 8 * Game.TILE_SIZE;
 				break;
 			case 6:
-				this.game.monsters[0].type = 105 as TileType;
+				this.game.monsters[0].type = TileType.MonsterGreySaucerStart;
 				this.game.monsters[0].monsterPx = 5 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 2 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = 105 as TileType;
+				this.game.monsters[1].type = TileType.MonsterGreySaucerStart;
 				this.game.monsters[1].monsterPx = 16 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 1 * Game.TILE_SIZE;
 
-				this.game.monsters[2].type = 105 as TileType;
+				this.game.monsters[2].type = TileType.MonsterGreySaucerStart;
 				this.game.monsters[2].monsterPx = 46 * Game.TILE_SIZE;
 				this.game.monsters[2].monsterPy = 2 * Game.TILE_SIZE;
 
-				this.game.monsters[3].type = 105 as TileType;
+				this.game.monsters[3].type = TileType.MonsterGreySaucerStart;
 				this.game.monsters[3].monsterPx = 56 * Game.TILE_SIZE;
 				this.game.monsters[3].monsterPy = 3 * Game.TILE_SIZE;
 				break;
 			case 7:
-				this.game.monsters[0].type = 109 as TileType;
+				this.game.monsters[0].type = TileType.MonsterDoubleMushroomStart;
 				this.game.monsters[0].monsterPx = 10 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 8 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = 109 as TileType;
+				this.game.monsters[1].type = TileType.MonsterDoubleMushroomStart;
 				this.game.monsters[1].monsterPx = 72 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 2 * Game.TILE_SIZE;
 
-				this.game.monsters[2].type = 109 as TileType;
+				this.game.monsters[2].type = TileType.MonsterDoubleMushroomStart;
 				this.game.monsters[2].monsterPx = 84 * Game.TILE_SIZE;
 				this.game.monsters[2].monsterPy = 1 * Game.TILE_SIZE;
 				break;
 			case 8:
-				this.game.monsters[0].type = 113 as TileType;
+				this.game.monsters[0].type = TileType.MonsterGreenCircleStart;
 				this.game.monsters[0].monsterPx = 35 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 8 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = 113 as TileType;
+				this.game.monsters[1].type = TileType.MonsterGreenCircleStart;
 				this.game.monsters[1].monsterPx = 41 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 8 * Game.TILE_SIZE;
 
-				this.game.monsters[2].type = 113 as TileType;
+				this.game.monsters[2].type = TileType.MonsterGreenCircleStart;
 				this.game.monsters[2].monsterPx = 49 * Game.TILE_SIZE;
 				this.game.monsters[2].monsterPy = 2 * Game.TILE_SIZE;
 
-				this.game.monsters[3].type = 113 as TileType;
+				this.game.monsters[3].type = TileType.MonsterGreenCircleStart;
 				this.game.monsters[3].monsterPx = 65 * Game.TILE_SIZE;
 				this.game.monsters[3].monsterPy = 8 * Game.TILE_SIZE;
 				break;
 			case 9:
-				this.game.monsters[0].type = 117 as TileType;
+				this.game.monsters[0].type = TileType.MonsterSilverSpinnerStart;
 				this.game.monsters[0].monsterPx = 45 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 8 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = 117 as TileType;
+				this.game.monsters[1].type = TileType.MonsterSilverSpinnerStart;
 				this.game.monsters[1].monsterPx = 51 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 2 * Game.TILE_SIZE;
 
-				this.game.monsters[2].type = 117 as TileType;
+				this.game.monsters[2].type = TileType.MonsterSilverSpinnerStart;
 				this.game.monsters[2].monsterPx = 65 * Game.TILE_SIZE;
 				this.game.monsters[2].monsterPy = 3 * Game.TILE_SIZE;
 
-				this.game.monsters[3].type = 117 as TileType;
+				this.game.monsters[3].type = TileType.MonsterSilverSpinnerStart;
 				this.game.monsters[3].monsterPx = 82 * Game.TILE_SIZE;
 				this.game.monsters[3].monsterPy = 2 * Game.TILE_SIZE;
 				break;
@@ -879,39 +879,62 @@ class Game {
 		return tile + ~~(salt + this.game.tick / 5) % mod;
 	}
 
+	/**
+	 * Draws the tiles of the game map to a renderer.
+	 * @param renderer The renderer to draw with.
+	 * @param assets The assets to draw the tiles from.
+	 * @param numberOfTiles An object specifying the number of tiles to draw along each axis.
+	 * @param numberOfTiles.x The number of tiles to draw along the horizontal axis.
+	 * @param numberOfTiles.y The number of tiles to draw along the vertical axis.
+	 * @param getTile A function that gets the correct graphics tile based on the ordinal number of the horizontal and vertical tile.
+	 * @param [tileOffset={ x: 0, y: 0 }] The number of tiles to offset by starting from the upper left corner of the screen.
+	 * @param tileOffset.x The number of tiles to offset by along the horizontal axis.
+	 * @param tileOffset.x The number of tiles to offset by along the horizontal axis.
+	 */
+	private drawMap(
+		renderer: GameRenderer,
+		assets: GameAssets,
+		getTile: (x: number, y: number) => TileType,
+		numberOfTiles: { x: number; y: number },
+		tileOffset = { x: 0, y: 0 }
+	) {
+		const width = Game.TILE_SIZE;
+		for (let j = 0; j < numberOfTiles.y; j++) {
+			const y = Game.TILE_SIZE + (j + tileOffset.y) * Game.TILE_SIZE;
+			for (let i = 0; i < numberOfTiles.x; i++) {
+				const x = (i + tileOffset.x) * Game.TILE_SIZE;
+				const tileIndex = this.updateFrame(getTile(i, j), i);
+				if (tileIndex >= assets.graphicsTiles.length) {
+					throw new Error(`Tile index error: ${tileIndex} for ${i}, ${j} at ${this.game.tick}`);
+				}
+				let height = Game.TILE_SIZE;
+				if (j < numberOfTiles.y - 1) {
+					renderer.drawCanvas(assets.graphicsTiles[tileIndex], { x, y, width, height });
+				} else {
+					height = ~~(height / 2.5);
+					// For the last y, only draw the upper third
+					renderer.drawCanvas(assets.graphicsTiles[tileIndex], { x, y, width, height }, { height });
+				}
+			}
+		}
+	}
+
 	private drawWorld(renderer: GameRenderer, assets: GameAssets) {
 		if (this.game.mode === GameMode.Gameplay) {
-			for (let j = 0; j < 10; j++) {
-				const y = Game.TILE_SIZE + j * Game.TILE_SIZE;
-				// TODO: For the last y, only draw the upper third
-				const width = Game.TILE_SIZE;
-				const height = Game.TILE_SIZE;
-				for (let i = 0; i < 20; i++) {
-					const x = i * Game.TILE_SIZE;
-					let tileIndex = this.getTile(this.game.viewX + i, j);
-					tileIndex = this.updateFrame(tileIndex, i);
-					if (tileIndex >= assets.graphicsTiles.length) {
-						throw new Error(`Tile index error: ${tileIndex} for ${i}, ${j} at ${this.game.tick}`);
-					}
-					renderer.drawCanvas(assets.graphicsTiles[tileIndex], { x, y, width, height });
-				}
-			}
+			this.drawMap(
+				renderer,
+				assets,
+				(x, y) => this.getTile(this.game.viewX + x, y),
+				{ x: 20, y: 10 }
+			);
 		} else if (this.game.mode === GameMode.Title) {
-			for (let j = 0; j < 7; j++) {
-				const y = Game.TILE_SIZE + (j + 3) * Game.TILE_SIZE;
-				// TODO: For the last y, only draw the upper third
-				const width = Game.TILE_SIZE;
-				const height = Game.TILE_SIZE;
-				for (let i = 0; i < 10; i++) {
-					const x = (i + 5) * Game.TILE_SIZE;
-					let tileIndex = this.game.titleLevel[j * 10 + i];
-					tileIndex = this.updateFrame(tileIndex, i);
-					if (tileIndex >= assets.graphicsTiles.length) {
-						throw new Error(`Tile index error: ${tileIndex} for ${i}, ${j} at ${this.game.tick}`);
-					}
-					renderer.drawCanvas(assets.graphicsTiles[tileIndex], { x, y, width, height });
-				}
-			}
+			this.drawMap(
+				renderer,
+				assets,
+				(x, y) => this.game.titleLevel[y * 10 + x],
+				{ x: 10, y: 7 },
+				{ x: 5, y: 3 }
+			);
 		}
 	}
 
@@ -1069,7 +1092,7 @@ class Game {
 				dest.height = 4;
 				renderer.drawColor(`rgb(${0xee}, 0, 0)`, dest);
 			}
-		} else {
+		} else if (this.game.mode === GameMode.Title) {
 			const dest = {
 				x: 104,	// half of (width of the screen - width of the title)
 				y: 0,

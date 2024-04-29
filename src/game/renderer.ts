@@ -105,7 +105,7 @@ export class GameRenderer {
                 }
 
                 tiles.push(await GameRenderer.mask(canvas, await this.loadTileToCanvas(i + maskOffset)));
-            } else if ((i >= TileType.MonsterSpider && i <= 120) || (i >= TileType.ExplosionStart && i <= TileType.ExplosionEnd)) { // TODO: Mask bullets
+            } else if ((i >= TileType.MonsterSpiderStart && i <= TileType.MonsterSilverSpinnerEnd) || (i >= TileType.ExplosionStart && i <= TileType.ExplosionEnd)) { // TODO: Mask bullets
                 tiles.push(await GameRenderer.blackToAlpha(canvas));
             } else {
                 tiles.push(canvas);
@@ -126,9 +126,19 @@ export class GameRenderer {
         return this.screen;
     }
 
-    public drawCanvas(canvas: Canvas, dest: RenderRect) {
+    public drawCanvas(canvas: Canvas, dest: RenderRect, src: Partial<RenderRect> = {}) {
         this.assertScreenIsStarted().draw((context) => {
-            context.drawImage(canvas, dest.x * this.displayScale, dest.y * this.displayScale, dest.width * this.displayScale, dest.height * this.displayScale);
+            context.drawImage(
+                canvas,
+                src.x ?? 0,
+                src.y ?? 0,
+                src.width ? src.width * this.displayScale : canvas.width,
+                src.height ? src.height * this.displayScale : canvas.height,
+                dest.x * this.displayScale,
+                dest.y * this.displayScale,
+                dest.width * this.displayScale,
+                dest.height * this.displayScale
+            );
         });
         return this;
     }

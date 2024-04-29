@@ -1,7 +1,8 @@
 [ ] Improve collision detection
 [ ] Mask some of the remaining graphics sprites (bullets come to mind)
 [ ] Fix enemies that fire too often
-[ ] Do not draw entire last tile
+[ ] Restore original gradient map divider
+[ ] Restore original jetpack bar graphics
 [ ] Warp zones
 [ ] Better font for title screen?
 [ ] Sound (not at all easy!)
