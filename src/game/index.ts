@@ -2,18 +2,14 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { video, Sdl } from '@kmamal/sdl';
 
-import { TileType } from './tile-type';
-import { InputReader } from './input-reader';
 import { GameAssets, GameRenderer } from './renderer';
+import { Entity, TileType } from './tile-type';
+import { InputReader } from './input-reader';
+import { Direction } from './direction';
 import { DaveLevel } from '../common/dave-level';
 import { getAssetsDir } from '../common/file-utils';
 import { BinaryFileReader } from '../common/binary-file-reader';
 
-enum Direction {
-	Left = -1,
-	Neutral = 0,
-	Right = 1
-}
 
 enum GameMode {
 	Title,
@@ -31,7 +27,7 @@ interface MonsterProperties {
 	nextPy: number;
 }
 interface InactiveMonster extends Partial<MonsterProperties> { type: 0 }
-interface ActiveMonster extends MonsterProperties { type: TileType }
+interface ActiveMonster extends MonsterProperties { type: Entity }
 
 type Monster = InactiveMonster | ActiveMonster;
 
@@ -191,110 +187,110 @@ class Game {
 
 		switch (this.game.currentLevel) {
 			case 2:
-				this.game.monsters[0].type = TileType.MonsterSpiderStart;
+				this.game.monsters[0].type = Entity.MonsterSpider;
 				this.game.monsters[0].monsterPx = 44 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 4 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = TileType.MonsterSpiderStart;
+				this.game.monsters[1].type = Entity.MonsterSpider;
 				this.game.monsters[1].monsterPx = 59 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 4 * Game.TILE_SIZE;
 				break;
 			case 3:
-				this.game.monsters[0].type = TileType.MonsterPurpleThingStart;
+				this.game.monsters[0].type = Entity.MonsterPurpleThing;
 				this.game.monsters[0].monsterPx = 32 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 2 * Game.TILE_SIZE;
 				break;
 			case 4:
-				this.game.monsters[0].type = TileType.MonsterRedSunStart;
+				this.game.monsters[0].type = Entity.MonsterRedSun;
 				this.game.monsters[0].monsterPx = 15 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 3 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = TileType.MonsterRedSunStart;
+				this.game.monsters[1].type = Entity.MonsterRedSun;
 				this.game.monsters[1].monsterPx = 33 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 3 * Game.TILE_SIZE;
 
-				this.game.monsters[2].type = TileType.MonsterRedSunStart;
+				this.game.monsters[2].type = Entity.MonsterRedSun;
 				this.game.monsters[2].monsterPx = 49 * Game.TILE_SIZE;
 				this.game.monsters[2].monsterPy = 3 * Game.TILE_SIZE;
 				break;
 			case 5:
-				this.game.monsters[0].type = TileType.MonsterGreenBarStart;
+				this.game.monsters[0].type = Entity.MonsterGreenBar;
 				this.game.monsters[0].monsterPx = 10 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 8 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = TileType.MonsterGreenBarStart;
+				this.game.monsters[1].type = Entity.MonsterGreenBar;
 				this.game.monsters[1].monsterPx = 28 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 8 * Game.TILE_SIZE;
 
-				this.game.monsters[2].type = TileType.MonsterGreenBarStart;
+				this.game.monsters[2].type = Entity.MonsterGreenBar;
 				this.game.monsters[2].monsterPx = 45 * Game.TILE_SIZE;
 				this.game.monsters[2].monsterPy = 5 * Game.TILE_SIZE;
 
-				this.game.monsters[3].type = TileType.MonsterGreenBarStart;
+				this.game.monsters[3].type = Entity.MonsterGreenBar;
 				this.game.monsters[3].monsterPx = 40 * Game.TILE_SIZE;
 				this.game.monsters[3].monsterPy = 8 * Game.TILE_SIZE;
 				break;
 			case 6:
-				this.game.monsters[0].type = TileType.MonsterGreySaucerStart;
+				this.game.monsters[0].type = Entity.MonsterGreySaucer;
 				this.game.monsters[0].monsterPx = 5 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 2 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = TileType.MonsterGreySaucerStart;
+				this.game.monsters[1].type = Entity.MonsterGreySaucer;
 				this.game.monsters[1].monsterPx = 16 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 1 * Game.TILE_SIZE;
 
-				this.game.monsters[2].type = TileType.MonsterGreySaucerStart;
+				this.game.monsters[2].type = Entity.MonsterGreySaucer;
 				this.game.monsters[2].monsterPx = 46 * Game.TILE_SIZE;
 				this.game.monsters[2].monsterPy = 2 * Game.TILE_SIZE;
 
-				this.game.monsters[3].type = TileType.MonsterGreySaucerStart;
+				this.game.monsters[3].type = Entity.MonsterGreySaucer;
 				this.game.monsters[3].monsterPx = 56 * Game.TILE_SIZE;
 				this.game.monsters[3].monsterPy = 3 * Game.TILE_SIZE;
 				break;
 			case 7:
-				this.game.monsters[0].type = TileType.MonsterDoubleMushroomStart;
+				this.game.monsters[0].type = Entity.MonsterDoubleMushroom;
 				this.game.monsters[0].monsterPx = 10 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 8 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = TileType.MonsterDoubleMushroomStart;
+				this.game.monsters[1].type = Entity.MonsterDoubleMushroom;
 				this.game.monsters[1].monsterPx = 72 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 2 * Game.TILE_SIZE;
 
-				this.game.monsters[2].type = TileType.MonsterDoubleMushroomStart;
+				this.game.monsters[2].type = Entity.MonsterDoubleMushroom;
 				this.game.monsters[2].monsterPx = 84 * Game.TILE_SIZE;
 				this.game.monsters[2].monsterPy = 1 * Game.TILE_SIZE;
 				break;
 			case 8:
-				this.game.monsters[0].type = TileType.MonsterGreenCircleStart;
+				this.game.monsters[0].type = Entity.MonsterGreenCircle;
 				this.game.monsters[0].monsterPx = 35 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 8 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = TileType.MonsterGreenCircleStart;
+				this.game.monsters[1].type = Entity.MonsterGreenCircle;
 				this.game.monsters[1].monsterPx = 41 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 8 * Game.TILE_SIZE;
 
-				this.game.monsters[2].type = TileType.MonsterGreenCircleStart;
+				this.game.monsters[2].type = Entity.MonsterGreenCircle;
 				this.game.monsters[2].monsterPx = 49 * Game.TILE_SIZE;
 				this.game.monsters[2].monsterPy = 2 * Game.TILE_SIZE;
 
-				this.game.monsters[3].type = TileType.MonsterGreenCircleStart;
+				this.game.monsters[3].type = Entity.MonsterGreenCircle;
 				this.game.monsters[3].monsterPx = 65 * Game.TILE_SIZE;
 				this.game.monsters[3].monsterPy = 8 * Game.TILE_SIZE;
 				break;
 			case 9:
-				this.game.monsters[0].type = TileType.MonsterSilverSpinnerStart;
+				this.game.monsters[0].type = Entity.MonsterSilverSpinner;
 				this.game.monsters[0].monsterPx = 45 * Game.TILE_SIZE;
 				this.game.monsters[0].monsterPy = 8 * Game.TILE_SIZE;
 
-				this.game.monsters[1].type = TileType.MonsterSilverSpinnerStart;
+				this.game.monsters[1].type = Entity.MonsterSilverSpinner;
 				this.game.monsters[1].monsterPx = 51 * Game.TILE_SIZE;
 				this.game.monsters[1].monsterPy = 2 * Game.TILE_SIZE;
 
-				this.game.monsters[2].type = TileType.MonsterSilverSpinnerStart;
+				this.game.monsters[2].type = Entity.MonsterSilverSpinner;
 				this.game.monsters[2].monsterPx = 65 * Game.TILE_SIZE;
 				this.game.monsters[2].monsterPy = 3 * Game.TILE_SIZE;
 
-				this.game.monsters[3].type = TileType.MonsterSilverSpinnerStart;
+				this.game.monsters[3].type = Entity.MonsterSilverSpinner;
 				this.game.monsters[3].monsterPx = 82 * Game.TILE_SIZE;
 				this.game.monsters[3].monsterPy = 2 * Game.TILE_SIZE;
 				break;
@@ -437,8 +433,8 @@ class Game {
 
 		const gridX = Game.onGrid(this.game.davePx + 6);
 		const gridY = Game.onGrid(this.game.davePy + 8);
-		const type = gridX < 100 && gridY < 10 ? this.getTile(gridX, gridY) : 0;
-		if ((type >= TileType.TreeStart && type <= TileType.TreeEnd) || type === TileType.Stars) {
+		const entity = gridX < 100 && gridY < 10 ? this.getTileObject(gridX, gridY) : Entity.Empty;
+		if (entity.isClimbable) {
 			this.game.canClimb = true;
 		} else {
 			this.game.canClimb = false;
@@ -760,6 +756,10 @@ class Game {
 		return this.currentLevel.tiles[gridY * 100 + gridX];
 	}
 
+	private getTileObject(gridX: number, gridY: number): Entity {
+		return Entity.getByType(this.getTile(gridX, gridY));
+	}
+
 	private setTile(gridX: number, gridY: number, value: number) {
 		this.currentLevel.tiles[gridY * 100 + gridX] = value;
 	}
@@ -769,36 +769,16 @@ class Game {
 			return;
 		}
 
-		const type = this.getTile(gridX, gridY);
-		switch (type) {
-			case TileType.Jetpack:
-				this.game.jetpack = 0xff;
-				break;
-			case TileType.TrophyStart:
-				this.addScore(1000);
-				this.game.trophy = true;
-				break;
-			case TileType.Gun:
-				this.game.gun = true;
-				break;
-			case TileType.BlueDiamond:
-				this.addScore(100);
-				break;
-			case TileType.PurpleBall:
-				this.addScore(50);
-				break;
-			case TileType.RedDiamond:
-				this.addScore(150);
-				break;
-			case TileType.Crown:
-				this.addScore(300);
-				break;
-			case TileType.Ring:
-				this.addScore(200);
-				break;
-			case TileType.Wand:
-				this.addScore(500);
-				break;
+		const entity = this.getTileObject(gridX, gridY);
+		if (entity.hasScoreValue) {
+			this.addScore(entity.scoreValue);
+		}
+		if (entity.is(Entity.Jetpack)) {
+			this.game.jetpack = 0xff;
+		} else if (entity.is(Entity.Trophy)) {
+			this.game.trophy = true;
+		} else if (entity.is(Entity.Gun)) {
+			this.game.gun = true;
 		}
 
 		this.setTile(gridX, gridY, 0);
@@ -833,7 +813,7 @@ class Game {
 					if ((gridY === my || gridY === my + 1) && (gridX === mx || gridX === mx + 1)) {
 						this.game.dBulletPx = this.game.dBulletPy = 0;
 						monster.deadTimer = 30;
-						this.addScore(300);
+						this.addScore(monster.type.scoreValue);
 					}
 				}
 			}
@@ -864,19 +844,8 @@ class Game {
 		}
 	}
 
-	private updateFrame(tile: TileType, salt: number): TileType {
-		let mod: number;
-		switch (tile) {
-			case TileType.FireStart: mod = 4; break;
-			case TileType.TrophyStart: mod = 5; break;
-			case TileType.WeedStart: mod = 4; break;
-			case TileType.WaterStart: mod = 5; break;
-			case TileType.ExplosionStart: mod = 4; break;
-			case TileType.TitleStart: mod = 4; break;
-			default: mod = 1; break;
-		}
-
-		return tile + ~~(salt + this.game.tick / 5) % mod;
+	private updateFrame(entity: Entity, salt: number): TileType {
+		return entity.getFrame(this.game.tick, salt);
 	}
 
 	/**
@@ -886,7 +855,7 @@ class Game {
 	 * @param numberOfTiles An object specifying the number of tiles to draw along each axis.
 	 * @param numberOfTiles.x The number of tiles to draw along the horizontal axis.
 	 * @param numberOfTiles.y The number of tiles to draw along the vertical axis.
-	 * @param getTile A function that gets the correct graphics tile based on the ordinal number of the horizontal and vertical tile.
+	 * @param getTileEntity A function that gets the correct graphics tile based on the ordinal number of the horizontal and vertical tile.
 	 * @param [tileOffset={ x: 0, y: 0 }] The number of tiles to offset by starting from the upper left corner of the screen.
 	 * @param tileOffset.x The number of tiles to offset by along the horizontal axis.
 	 * @param tileOffset.x The number of tiles to offset by along the horizontal axis.
@@ -894,7 +863,7 @@ class Game {
 	private drawMap(
 		renderer: GameRenderer,
 		assets: GameAssets,
-		getTile: (x: number, y: number) => TileType,
+		getTileEntity: (x: number, y: number) => Entity,
 		numberOfTiles: { x: number; y: number },
 		tileOffset = { x: 0, y: 0 }
 	) {
@@ -903,7 +872,7 @@ class Game {
 			const y = Game.TILE_SIZE + (j + tileOffset.y) * Game.TILE_SIZE;
 			for (let i = 0; i < numberOfTiles.x; i++) {
 				const x = (i + tileOffset.x) * Game.TILE_SIZE;
-				const tileIndex = this.updateFrame(getTile(i, j), i);
+				const tileIndex = this.updateFrame(getTileEntity(i, j), i);
 				if (tileIndex >= assets.graphicsTiles.length) {
 					throw new Error(`Tile index error: ${tileIndex} for ${i}, ${j} at ${this.game.tick}`);
 				}
@@ -924,14 +893,14 @@ class Game {
 			this.drawMap(
 				renderer,
 				assets,
-				(x, y) => this.getTile(this.game.viewX + x, y),
+				(x, y) => this.getTileObject(this.game.viewX + x, y),
 				{ x: 20, y: 10 }
 			);
 		} else if (this.game.mode === GameMode.Title) {
 			this.drawMap(
 				renderer,
 				assets,
-				(x, y) => this.game.titleLevel[y * 10 + x],
+				(x, y) => Entity.getByType(this.game.titleLevel[y * 10 + x]),
 				{ x: 10, y: 7 },
 				{ x: 5, y: 3 }
 			);
@@ -939,29 +908,15 @@ class Game {
 	}
 
 	private drawDave(renderer: GameRenderer, assets: GameAssets) {
-		let tileIndex: TileType;
-		if (!this.game.lastDir) {
-			tileIndex = TileType.DaveDefault;
-		} else {
-			tileIndex = this.game.lastDir > Direction.Neutral ? TileType.DaveRightStart : TileType.DaveLeftStart;
-			tileIndex += ~~(this.game.daveTick / 5) % 3;
-		}
-
-		if (this.game.daveJetpack) {
-			tileIndex = this.game.lastDir >= Direction.Neutral ? TileType.JetpackRightStart : TileType.JetpackLeftEnd;
-		} else {
-			if (this.game.daveJump || !this.game.onGround) {
-				tileIndex = this.game.lastDir >= Direction.Neutral ? TileType.DaveJumpRight : TileType.DaveJumpLeft;
-			}
-			if (this.game.daveClimb) {
-				tileIndex = TileType.DaveClimbStart + ~~(this.game.daveTick / 5) % 3;
-			}
-		}
-
-		if (this.game.daveDeadTimer) {
-			tileIndex = TileType.ExplosionStart + ~~(this.game.tick / 3) % 4;
-		}
-
+		const tileIndex = this.game.daveDeadTimer ?
+			Entity.Explosion.getFrame(this.game.tick) :
+			Entity.getDaveFrame(this.game.daveTick, {
+				direction: this.game.lastDir,
+				jetpack: this.game.daveJetpack,
+				jump: this.game.daveJump,
+				onGround: this.game.onGround,
+				climbing: this.game.daveClimb
+			});
 		renderer.drawCanvas(assets.graphicsTiles[tileIndex], {
 			x: this.game.davePx - this.game.viewX * Game.TILE_SIZE,
 			y: Game.TILE_SIZE + this.game.davePy,
@@ -973,9 +928,11 @@ class Game {
 	private drawMonsters(renderer: GameRenderer, assets: GameAssets) {
 		for (const monster of this.game.monsters) {
 			if (monster.type) {
-				let tileIndex = monster.deadTimer ? TileType.ExplosionStart : monster.type;
-				tileIndex += ~~(this.game.tick / 3) % 4;
-				renderer.drawCanvas(assets.graphicsTiles[monster.deadTimer ? TileType.ExplosionStart : monster.type], {
+				const tileIndex = (monster.deadTimer ?
+					Entity.Explosion :
+					monster.type
+				).getFrame(this.game.tick);
+				renderer.drawCanvas(assets.graphicsTiles[tileIndex], {
 					x: monster.monsterPx - (this.game.viewX * Game.TILE_SIZE),
 					y: Game.TILE_SIZE + monster.monsterPy,
 					width: 20,
@@ -1099,7 +1056,7 @@ class Game {
 				width: 112,
 				height: 47
 			};
-			renderer.drawCanvas(assets.graphicsTiles[this.updateFrame(TileType.TitleStart, 0)], dest);
+			renderer.drawCanvas(assets.graphicsTiles[this.updateFrame(Entity.Title, 0)], dest);
 
 			const fontSize = (Game.TILE_SIZE - 2) / 2;
 
@@ -1121,53 +1078,23 @@ class Game {
 	private isClear(px: number, py: number, isDave = true) {
 		const gridX = ~~(px / Game.TILE_SIZE);
 		const gridY = ~~(py / Game.TILE_SIZE);
-		const type = this.getTile(gridX, gridY);
+		const entity = this.getTileObject(gridX, gridY);
 
 		if (gridX > 99 || gridY > 9) {
 			return true;
 		}
-		switch (type) {
-			case TileType.Rock:
-			case TileType.SilverBar:
-			case TileType.BlueBrick:
-			case TileType.PipeHorizontal:
-			case TileType.PipeVertical:
-			case TileType.RedBrick:
-			case TileType.NormalRock:
-			case TileType.BlueWall:
-			case TileType.RockSlope1:
-			case TileType.RockSlope2:
-			case TileType.RockSlope3:
-			case TileType.RockSlope4:
-			case TileType.PurpleBarVertical:
-			case TileType.PurpleBarHorizontal:
-				return false;
+		if (entity.hasCollision) {
+			return false;
 		}
 
 		if (isDave) {
-			switch (type) {
-				case TileType.Door:
-					this.game.checkDoor = true;
-					break;
-
-				case TileType.Jetpack:
-				case TileType.TrophyStart:
-				case TileType.Gun:
-				case TileType.BlueDiamond:
-				case TileType.PurpleBall:
-				case TileType.RedDiamond:
-				case TileType.Crown:
-				case TileType.Ring:
-				case TileType.Wand:
-					this.game.checkPickupX = gridX;
-					this.game.checkPickupY = gridY;
-					break;
-				case TileType.FireStart:
-				case TileType.WeedStart:
-				case TileType.WaterStart:
-					if (!this.game.daveDeadTimer) {
-						this.game.daveDeadTimer = 30;
-					}
+			if (entity.is(Entity.Door)) {
+				this.game.checkDoor = true;
+			} else if (entity.isPickup) {
+				this.game.checkPickupX = gridX;
+				this.game.checkPickupY = gridY;
+			} else if (entity.isHazard && !this.game.daveDeadTimer) {
+				this.game.daveDeadTimer = 30;
 			}
 		}
 
