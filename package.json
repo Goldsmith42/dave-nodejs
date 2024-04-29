@@ -1,6 +1,6 @@
 {
   "name": "dave-nodejs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Dangerous Dave in Node.js, based on MaiZure's C implementation",
   "main": "src/game/index.ts",
   "scripts": {
