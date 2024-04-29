@@ -976,7 +976,7 @@ class Game {
 			};
 			const white = `rgb(${0xee}, ${0xee}, ${0xee})`;
 			renderer.drawColor(white, dest);
-			dest.y = 176;
+			dest.y = 166;
 			renderer.drawColor(white, dest);
 
 			dest.x = 1;
