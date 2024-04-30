@@ -90,6 +90,32 @@ interface GameState {
 	mode: GameMode;
 }
 
+// Decorator logic based on this StackOverflow answer: https://stackoverflow.com/a/69082407
+
+/** Only allows method execution if the game is in one of the specified modes. */
+function allowedModes(...modes: GameMode[]) {
+  return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
+    const originalValue = descriptor.value;
+    descriptor.value = function(...args: any[]) {
+      if (modes.includes((this as Game).mode)) {
+        return originalValue.apply(this, args);
+      }
+    }
+  }
+}
+
+/** Does not allow method execution if the game is in one of the specified modes. */
+function disallowedModes(...modes: GameMode[]) {
+  return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
+    const originalValue = descriptor.value;
+    descriptor.value = function(...args: any[]) {
+      if (!modes.includes((this as Game).mode)) {
+        return originalValue.apply(this, args);
+      }
+    }
+  }
+}
+
 class Game {
 	private static readonly TILE_SIZE = 16;
 	private static readonly PATH_END = 0xfffffff80 | (0xea & 0x7f);	// The path end is at 0xea but we need to convert it to signed.
@@ -114,6 +140,10 @@ class Game {
 
 	public get currentLevel() {
 		return this.game.levels[this.game.currentLevel];
+	}
+
+	public get mode() {
+		return this.game.mode;
 	}
 
 	public async init() {
@@ -418,12 +448,8 @@ class Game {
 		renderer.render();
 	}
 
+	@disallowedModes(GameMode.Title)
 	private checkCollision() {
-		if (this.game.mode === GameMode.Title) {
-			// No need to check collisions on title screen.
-			return;
-		}
-
 		this.game.collisionPoints = [
 			this.isClear(this.game.davePx + 4, this.game.davePy - 1),
 			this.isClear(this.game.davePx + 10, this.game.davePy - 1),
@@ -449,9 +475,10 @@ class Game {
 	}
 
 	/** Check if keyboard input is valid. */
+	@allowedModes(GameMode.Gameplay)
 	private verifyInput() {
-		// Dave is dead or we're not in gameplay mode. No input is valid.
-		if (this.game.daveDeadTimer && this.game.mode !== GameMode.Gameplay) {
+		// Dave is dead: no input is valid.
+		if (this.game.daveDeadTimer) {
 			return;
 		}
 
@@ -497,11 +524,8 @@ class Game {
 		}
 	}
 
+	@disallowedModes(GameMode.Title)
 	private moveDave() {
-		if (this.game.mode === GameMode.Title) {
-			return;
-		}
-
 		const MULTIPLIER = 1;
 
 		this.game.daveX = Game.onGrid(this.game.davePx);
@@ -569,11 +593,8 @@ class Game {
 		}
 	}
 
+	@allowedModes(GameMode.Gameplay)
 	private moveMonsters() {
-		if (this.game.mode !== GameMode.Gameplay) {
-			return;
-		}
-
 		for (const monster of this.game.monsters) {
 			if (monster.type && !monster.deadTimer) {
 				if (!monster.nextPx && !monster.nextPy) {
@@ -611,11 +632,8 @@ class Game {
 		}
 	}
 
+	@allowedModes(GameMode.Gameplay)
 	private fireMonsters() {
-		if (this.game.mode !== GameMode.Gameplay) {
-			return;
-		}
-
 		if (!this.game.eBulletPx && !this.game.eBulletPy) {
 			for (const monster of this.game.monsters) {
 				if (monster.type && this.isVisible(monster.monsterPx) && !monster.deadTimer) {
@@ -634,11 +652,8 @@ class Game {
 		}
 	}
 
+	@disallowedModes(GameMode.Title)
 	private applyGravity() {
-		if (this.game.mode === GameMode.Title) {
-			return;
-		}
-
 		if (!this.game.daveJump && !this.game.onGround && !this.game.daveJetpack && !this.game.daveClimb) {
 			if (this.isClear(this.game.davePx + 4, this.game.davePy + 17)) {
 				this.game.davePy += 2;
@@ -756,11 +771,8 @@ class Game {
 		this.game.tryUp = false;
 	}
 
+	@allowedModes(GameMode.Gameplay)
 	private scrollScreen() {
-		if (this.game.mode !== GameMode.Gameplay) {
-			return;
-		}
-
 		if (this.game.daveX - this.game.viewX >= 18) {
 			this.game.scrollX = 15;
 		}
@@ -819,8 +831,9 @@ class Game {
 		this.currentLevel.tiles[gridY * 100 + gridX] = value;
 	}
 
+	@allowedModes(GameMode.Gameplay)
 	private pickupItem(gridX: number, gridY: number) {
-		if (!gridX || !gridY || (this.game.mode !== GameMode.Gameplay)) {
+		if (!gridX || !gridY) {
 			return;
 		}
 
@@ -842,8 +855,9 @@ class Game {
 		this.game.checkPickupY = 0;
 	}
 
+	@allowedModes(GameMode.Gameplay)
 	private updateDBullet() {
-		if (!this.game.dBulletPx && !this.game.dBulletPy || this.game.mode !== GameMode.Gameplay) {
+		if (!this.game.dBulletPx && !this.game.dBulletPy) {
 			return;
 		}
 
@@ -875,8 +889,9 @@ class Game {
 		}
 	}
 
+	@allowedModes(GameMode.Gameplay)
 	private updateEBullet() {
-		if (!this.game.eBulletPx && !this.game.eBulletPy || this.game.mode !== GameMode.Gameplay) {
+		if (!this.game.eBulletPx && !this.game.eBulletPy) {
 			return;
 		}
 
@@ -965,12 +980,8 @@ class Game {
 		);
 	}
 
+	@disallowedModes(GameMode.Title)
 	private drawDave(renderer: GameRenderer, assets: GameAssets) {
-		if (this.game.mode === GameMode.Title) {
-			// No Dave on the title screen
-			return;
-		}
-
 		const tileIndex = this.game.daveDeadTimer ?
 			Entity.Explosion.getFrame(this.game.tick) :
 			Entity.getDaveFrame(this.game.daveTick, {
@@ -988,11 +999,8 @@ class Game {
 		});
 	}
 
+	@allowedModes(GameMode.Gameplay)
 	private drawMonsters(renderer: GameRenderer, assets: GameAssets) {
-		if (this.game.mode !== GameMode.Gameplay) {
-			return;
-		}
-
 		for (const monster of this.game.monsters) {
 			if (monster.type) {
 				const tileIndex = (monster.deadTimer ?
@@ -1009,11 +1017,8 @@ class Game {
 		}
 	}
 
+	@allowedModes(GameMode.Gameplay)
 	private drawDaveBullet(renderer: GameRenderer, assets: GameAssets) {
-		if (this.game.mode !== GameMode.Gameplay) {
-			return;
-		}
-
 		if (this.game.dBulletPx && this.game.dBulletPy) {
 			const tileIndex = this.game.dBulletDir > Direction.Neutral ? TileType.DaveBulletRight : TileType.DaveBulletLeft;
 			renderer.drawCanvas(assets.graphicsTiles[tileIndex], {
@@ -1025,11 +1030,8 @@ class Game {
 		}
 	}
 
+	@allowedModes(GameMode.Gameplay)
 	private drawMonsterBullet(renderer: GameRenderer, assets: GameAssets) {
-		if (this.game.mode !== GameMode.Gameplay) {
-			return;
-		}
-
 		if (this.game.eBulletPx && this.game.eBulletPy) {
 			const tileIndex = this.game.eBulletDir > Direction.Neutral ? TileType.MonsterBulletRight : TileType.MonsterBulletLeft;
 			renderer.drawCanvas(assets.graphicsTiles[tileIndex], {
