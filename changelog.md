@@ -1,3 +1,6 @@
+0.2.0
+- Added level transitions.
+
 0.1.1
 - Only the upper part of the last tile of the level is drawn now.
 

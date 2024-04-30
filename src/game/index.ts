@@ -10,10 +10,10 @@ import { DaveLevel } from '../common/dave-level';
 import { getAssetsDir } from '../common/file-utils';
 import { BinaryFileReader } from '../common/binary-file-reader';
 
-
 enum GameMode {
 	Title,
-	Gameplay
+	Gameplay,
+	LevelTransition
 }
 
 interface MonsterProperties {
@@ -69,6 +69,7 @@ interface GameState {
 	checkPickupX: number;
 	checkPickupY: number;
 	checkDoor: boolean;
+	nextLevel: boolean;
 	canClimb: boolean;
 	trophy: boolean;
 	gun: boolean;
@@ -92,7 +93,7 @@ interface GameState {
 class Game {
 	private static readonly TILE_SIZE = 16;
 	private static readonly PATH_END = 0xfffffff80 | (0xea & 0x7f);	// The path end is at 0xea but we need to convert it to signed.
-
+	private static readonly FONT_SIZE = (Game.TILE_SIZE - 2) / 2;
 
 	private static onGrid(n: number) {
 		return ~~(n / this.TILE_SIZE);
@@ -172,7 +173,27 @@ class Game {
 		}
 	}
 
+	private resetDave() {
+		this.game.davePx = this.game.daveX * Game.TILE_SIZE;
+		this.game.davePy = this.game.daveY * Game.TILE_SIZE;
+		this.game.daveFire = false;
+		this.game.daveJetpack = false;
+		this.game.daveDeadTimer = 0;
+		this.game.trophy = false;
+		this.game.gun = false;
+		this.game.jetpack = 0;
+		this.game.checkDoor = false;
+		this.game.viewX = 0;
+		this.game.viewY = 0;
+		this.game.jumpTimer = 0;
+		this.game.dBulletPx = 0;
+		this.game.dBulletPy = 0;
+		this.game.eBulletPx = 0;
+		this.game.eBulletPy = 0;
+	}
+
 	public startLevel() {
+		this.game.mode = GameMode.Gameplay;
 		this.restartLevel();
 
 		for (let j = 0; j < 5; j++) {
@@ -296,22 +317,7 @@ class Game {
 				break;
 		}
 
-		this.game.davePx = this.game.daveX * Game.TILE_SIZE;
-		this.game.davePy = this.game.daveY * Game.TILE_SIZE;
-		this.game.daveFire = false;
-		this.game.daveJetpack = false;
-		this.game.daveDeadTimer = 0;
-		this.game.trophy = false;
-		this.game.gun = false;
-		this.game.jetpack = 0;
-		this.game.checkDoor = false;
-		this.game.viewX = 0;
-		this.game.viewY = 0;
-		this.game.jumpTimer = 0;
-		this.game.dBulletPx = 0;
-		this.game.dBulletPy = 0;
-		this.game.eBulletPx = 0;
-		this.game.eBulletPy = 0;
+		this.resetDave();
 	}
 
 	public initInput(window: Sdl.Video.Window) {
@@ -379,24 +385,29 @@ class Game {
 			if (this.inputReader.isKeyDown('alt')) { this.game.tryJetpack = true; }
 		} else if (this.game.mode === GameMode.Title) {
 			if (['return', 'space', 'ctrl', 'alt'].some(key => this.inputReader!.isKeyDown(key))) {
-				this.game.mode = GameMode.Gameplay;
 				this.startLevel();
 			}
 		}
 	}
 
 	public update() {
-		if (this.game.mode === GameMode.Gameplay) {
+		const isGameplay = this.game.mode === GameMode.Gameplay;
+		const isTransition = this.game.mode === GameMode.LevelTransition;
+		if (isGameplay || isTransition) {
 			this.checkCollision();
-			this.pickupItem(this.game.checkPickupX, this.game.checkPickupY);
-			this.updateDBullet();
-			this.updateEBullet();
-			this.verifyInput();
+			if (!isTransition) {
+				this.pickupItem(this.game.checkPickupX, this.game.checkPickupY);
+				this.updateDBullet();
+				this.updateEBullet();
+				this.verifyInput();
+			}
 			this.moveDave();
-			this.moveMonsters();
-			this.fireMonsters();
-			this.scrollScreen();
-			this.applyGravity();
+			if (isGameplay) {
+				this.moveMonsters();
+				this.fireMonsters();
+				this.scrollScreen();
+				this.applyGravity();
+			}
 		}
 		this.updateLevel();
 		this.clearInput();
@@ -406,8 +417,10 @@ class Game {
 		renderer.startScreen(window);
 
 		this.drawWorld(renderer, assets);
-		if (this.game.mode === GameMode.Gameplay) {
+		if (this.game.mode === GameMode.Gameplay || this.game.mode === GameMode.LevelTransition) {
 			this.drawDave(renderer, assets);
+		}
+		if (this.game.mode === GameMode.Gameplay) {
 			this.drawMonsters(renderer, assets);
 			this.drawDaveBullet(renderer, assets);
 			this.drawMonsterBullet(renderer, assets);
@@ -502,7 +515,7 @@ class Game {
 			this.game.davePy = -16;
 		}
 
-		if (this.game.daveRight) {
+		if (this.game.daveRight || this.game.mode === GameMode.LevelTransition) {
 			this.game.davePx += 2 * MULTIPLIER;
 			this.game.lastDir = Direction.Right;
 			this.tickDave();
@@ -591,8 +604,8 @@ class Game {
 					monster.nextPy--;
 				}
 
-				monster.monsterX = ~~(monster.monsterPx / Game.TILE_SIZE);
-				monster.monsterY = ~~(monster.monsterPy / Game.TILE_SIZE);
+				monster.monsterX = Game.onGrid(monster.monsterPx);
+				monster.monsterY = Game.onGrid(monster.monsterPy);
 			}
 		}
 	}
@@ -631,60 +644,75 @@ class Game {
 		}
 	}
 
+	private startLevelTransition() {
+		this.addScore(2000);
+		if (this.game.currentLevel < 9) {
+			this.game.mode = GameMode.LevelTransition;
+			this.game.daveX = 0;
+			this.game.daveY = 4;
+			this.resetDave();
+		} else {
+			// TODO: Proper ending
+			console.log(`You won with ${this.game.score} points`);
+			this.game.quit = true;
+		}
+	}
+
 	private updateLevel() {
 		this.game.tick++;
 		if (this.game.tick >= Number.MAX_VALUE) {
 			this.game.tick = 0;
 		}
 
-		if (this.game.jetpackDelay) {
-			this.game.jetpackDelay--;
-		}
-		if (this.game.daveJetpack) {
-			this.game.jetpack--;
-			if (!this.game.jetpack) {
-				this.game.daveJetpack = false;
+		if (this.game.mode === GameMode.LevelTransition) {
+			if (this.game.nextLevel) {
+				this.game.nextLevel = false;
+				this.game.currentLevel++;
+				this.startLevel();
 			}
-		}
+		} else {
+			if (this.game.jetpackDelay) {
+				this.game.jetpackDelay--;
+			}
+			if (this.game.daveJetpack) {
+				this.game.jetpack--;
+				if (!this.game.jetpack) {
+					this.game.daveJetpack = false;
+				}
+			}
 
-		if (this.game.checkDoor) {
-			if (this.game.trophy) {
-				this.addScore(2000);
-				if (this.game.currentLevel < 9) {
-					this.game.currentLevel++;
-					this.startLevel();
+			if (this.game.checkDoor) {
+				if (this.game.trophy) {
+					this.startLevelTransition();
 				} else {
-					console.log(`You won with ${this.game.score} points`);
-					this.game.quit = true;
+					this.game.checkDoor = false;
 				}
-			} else {
-				this.game.checkDoor = false;
 			}
-		}
 
-		if (this.game.daveDeadTimer) {
-			this.game.daveDeadTimer--;
-			if (!this.game.daveDeadTimer) {
-				if (this.game.lives) {
-					this.game.lives--;
-					this.restartLevel();
+			if (this.game.daveDeadTimer) {
+				this.game.daveDeadTimer--;
+				if (!this.game.daveDeadTimer) {
+					if (this.game.lives) {
+						this.game.lives--;
+						this.restartLevel();
+					} else {
+						this.game.quit = true;
+					}
+				}
+			}
+
+			for (const monster of this.game.monsters) {
+				if (monster.deadTimer) {
+					monster.deadTimer--;
+					if (!monster.deadTimer) {
+						monster.type = 0;
+					}
 				} else {
-					this.game.quit = true;
-				}
-			}
-		}
-
-		for (const monster of this.game.monsters) {
-			if (monster.deadTimer) {
-				monster.deadTimer--;
-				if (!monster.deadTimer) {
-					monster.type = 0;
-				}
-			} else {
-				if (monster.type) {
-					if (monster.monsterX === this.game.daveX && monster.monsterY === this.game.daveY) {
-						monster.deadTimer = 30;
-						this.game.daveDeadTimer = 30;
+					if (monster.type) {
+						if (monster.monsterX === this.game.daveX && monster.monsterY === this.game.daveY) {
+							monster.deadTimer = 30;
+							this.game.daveDeadTimer = 30;
+						}
 					}
 				}
 			}
@@ -752,12 +780,26 @@ class Game {
 		}
 	}
 
+	/** Gets the tile type for given coordinates on the current level's grid. */
 	private getTile(gridX: number, gridY: number): TileType {
 		return this.currentLevel.tiles[gridY * 100 + gridX];
 	}
 
+	/** Gets the entity object for given coordinates on the current level's grid. */
 	private getTileObject(gridX: number, gridY: number): Entity {
 		return Entity.getByType(this.getTile(gridX, gridY));
+	}
+
+	/** Gets the entity object for given coordinates on the transition level's grid. */
+	private getTransitionTileObject(gridX: number, gridY: number): Entity {
+		// The layout of the transition level is always the same and simple, so we can get the tiles on the fly.
+		let tileType = TileType.Empty;
+		if (gridY === 3 || gridY === 5) {
+			tileType = TileType.BlueBrick;
+		} else if (gridY === 4 && gridX === 0) {
+			tileType = TileType.Door;
+		}
+		return Entity.getByType(tileType);
 	}
 
 	private setTile(gridX: number, gridY: number, value: number) {
@@ -889,15 +931,9 @@ class Game {
 	}
 
 	private drawWorld(renderer: GameRenderer, assets: GameAssets) {
-		if (this.game.mode === GameMode.Gameplay) {
-			this.drawMap(
-				renderer,
-				assets,
-				(x, y) => this.getTileObject(this.game.viewX + x, y),
-				{ x: 20, y: 10 }
-			);
-		} else if (this.game.mode === GameMode.Title) {
-			this.drawMap(
+		if (this.game.mode === GameMode.Title) {
+			// The title screen shows the title map, which is smaller and slightly offset from the normal level map.
+			return this.drawMap(
 				renderer,
 				assets,
 				(x, y) => Entity.getByType(this.game.titleLevel[y * 10 + x]),
@@ -905,6 +941,15 @@ class Game {
 				{ x: 5, y: 3 }
 			);
 		}
+
+		this.drawMap(
+			renderer,
+			assets,
+			this.game.mode === GameMode.LevelTransition ?
+				(x, y) => this.getTransitionTileObject(this.game.viewX + x, y) :
+				(x, y) => this.getTileObject(this.game.viewX + x, y),
+			{ x: 20, y: 10 }
+		);
 	}
 
 	private drawDave(renderer: GameRenderer, assets: GameAssets) {
@@ -966,55 +1011,57 @@ class Game {
 		}
 	}
 
-	private drawUI(renderer: GameRenderer, assets: GameAssets) {
+	private drawGameplayUI(renderer: GameRenderer, assets: GameAssets) {
+		const dest = {
+			x: 0,
+			y: 16,
+			width: 960,
+			height: 1
+		};
+		const white = `rgb(${0xee}, ${0xee}, ${0xee})`;
+		renderer.drawColor(white, dest);
+		dest.y = 166;
+		renderer.drawColor(white, dest);
+
+		dest.x = 1;
+		dest.y = 2;
+		dest.width = 62;
+		dest.height = 11;
+		renderer.drawCanvas(assets.graphicsTiles[TileType.UIScoreBanner], dest);
+
+		dest.x = 120;
+		renderer.drawCanvas(assets.graphicsTiles[TileType.UILevelBanner], dest);
+
+		dest.x = 200;
+		renderer.drawCanvas(assets.graphicsTiles[TileType.UILivesBanner], dest);
+
+		dest.x = 64;
+		dest.width = 8;
+		dest.height = 11;
+		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 10000) % 10], dest);
+		dest.x += 8;
+		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 1000) % 10], dest);
+		dest.x += 8;
+		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 100) % 10], dest);
+		dest.x += 8;
+		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 10) % 10], dest);
+		dest.x += 8;
+		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0], dest);
+
+		dest.x = 170;
+		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~((this.game.currentLevel + 1) / 10)], dest);
+		dest.x += 8;
+		renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + (this.game.currentLevel + 1) % 10], dest);
+
+		for (let i = 0; i < this.game.lives; i++) {
+			dest.width = 16;
+			dest.height = 12;
+			dest.x = (255 + dest.width * i);
+			renderer.drawCanvas(assets.graphicsTiles[TileType.UIIconLife], dest);
+		}
+
 		if (this.game.mode === GameMode.Gameplay) {
-			const dest = {
-				x: 0,
-				y: 16,
-				width: 960,
-				height: 1
-			};
-			const white = `rgb(${0xee}, ${0xee}, ${0xee})`;
-			renderer.drawColor(white, dest);
-			dest.y = 166;
-			renderer.drawColor(white, dest);
-
-			dest.x = 1;
-			dest.y = 2;
-			dest.width = 62;
-			dest.height = 11;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UIScoreBanner], dest);
-
-			dest.x = 120;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UILevelBanner], dest);
-
-			dest.x = 200;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UILivesBanner], dest);
-
-			dest.x = 64;
-			dest.width = 8;
-			dest.height = 11;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 10000) % 10], dest);
-			dest.x += 8;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 1000) % 10], dest);
-			dest.x += 8;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 100) % 10], dest);
-			dest.x += 8;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~(this.game.score / 10) % 10], dest);
-			dest.x += 8;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0], dest);
-
-			dest.x = 170;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + ~~((this.game.currentLevel + 1) / 10)], dest);
-			dest.x += 8;
-			renderer.drawCanvas(assets.graphicsTiles[TileType.UI0 + (this.game.currentLevel + 1) % 10], dest);
-
-			for (let i = 0; i < this.game.lives; i++) {
-				dest.width = 16;
-				dest.height = 12;
-				dest.x = (255 + dest.width * i);
-				renderer.drawCanvas(assets.graphicsTiles[TileType.UIIconLife], dest);
-			}
+			// This should prevent the lower part of the UI being drawn during level transitions.
 
 			if (this.game.trophy) {
 				dest.x = 72;
@@ -1049,36 +1096,64 @@ class Game {
 				dest.height = 4;
 				renderer.drawColor(`rgb(${0xee}, 0, 0)`, dest);
 			}
-		} else if (this.game.mode === GameMode.Title) {
-			const dest = {
-				x: 104,	// half of (width of the screen - width of the title)
-				y: 0,
-				width: 112,
-				height: 47
-			};
-			renderer.drawCanvas(assets.graphicsTiles[this.updateFrame(Entity.Title, 0)], dest);
-
-			const fontSize = (Game.TILE_SIZE - 2) / 2;
-
-			dest.y = 51;
-			dest.x = 123;
+		} else if (this.game.mode === GameMode.LevelTransition) {
+			dest.y = 62;
 			dest.width = 320;
-			renderer.drawText(assets.text.title, fontSize, dest);
+			dest.height = 47;
+			if (this.game.currentLevel < 8) {
+				dest.x = 96;
+				renderer.drawText(`GOOD WORK! ONLY ${9 - this.game.currentLevel} MORE TO GO!`, Game.FONT_SIZE, dest);
+			} else {
+				dest.x = 104;
+				renderer.drawText('THIS IS THE LAST LEVEL!!!', Game.FONT_SIZE, dest);
+			}
 
-			dest.y = 59;
-			dest.x = 108;
-			renderer.drawText(assets.text.subtitle, fontSize, dest);
-
-			dest.y = 185;
-			dest.x = 100;
-			renderer.drawText(assets.text.helpPrompt, fontSize, dest);
 		}
 	}
 
+	private drawTitleScreenUI(renderer: GameRenderer, assets: GameAssets) {
+		const dest = {
+			x: 104,	// half of (width of the screen - width of the title)
+			y: 0,
+			width: 112,
+			height: 47
+		};
+		renderer.drawCanvas(assets.graphicsTiles[this.updateFrame(Entity.Title, 0)], dest);
+
+		dest.y = 51;
+		dest.x = 123;
+		dest.width = 320;
+		renderer.drawText(assets.text.title, Game.FONT_SIZE, dest);
+
+		dest.y = 59;
+		dest.x = 108;
+		renderer.drawText(assets.text.subtitle, Game.FONT_SIZE, dest);
+
+		dest.y = 185;
+		dest.x = 100;
+		renderer.drawText(assets.text.helpPrompt, Game.FONT_SIZE, dest);
+	}
+
+	private drawUI(renderer: GameRenderer, assets: GameAssets) {
+		switch (this.game.mode) {
+			case GameMode.Title: return this.drawTitleScreenUI(renderer, assets);
+			case GameMode.Gameplay:
+			case GameMode.LevelTransition: return this.drawGameplayUI(renderer, assets);
+		}
+	}
+
+	/**
+	 * Determines whether the tile at the given position is something that can be passed through.
+	 * Also modifies state flags if certain tiles are crossed: pickups, hazards or the door.
+	 * @param px The x position to check.
+	 * @param py The y position to check.
+	 * @param [isDave=true] Set to false if checking for any object other than Dave.
+	 * @returns true if the entity at the given tile can be passed through, otherwise false.
+	 */
 	private isClear(px: number, py: number, isDave = true) {
-		const gridX = ~~(px / Game.TILE_SIZE);
-		const gridY = ~~(py / Game.TILE_SIZE);
-		const entity = this.getTileObject(gridX, gridY);
+		const gridX = Game.onGrid(px);
+		const gridY = Game.onGrid(py);
+		const entity = (this.game.mode === GameMode.Gameplay ? this.getTileObject : this.getTransitionTileObject).bind(this)(gridX, gridY);
 
 		if (gridX > 99 || gridY > 9) {
 			return true;
@@ -1095,6 +1170,8 @@ class Game {
 				this.game.checkPickupY = gridY;
 			} else if (entity.isHazard && !this.game.daveDeadTimer) {
 				this.game.daveDeadTimer = 30;
+			} else if (this.game.mode === GameMode.LevelTransition && gridX >= 20) {
+				this.game.nextLevel = true;
 			}
 		}
 
