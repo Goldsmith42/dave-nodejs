@@ -391,24 +391,16 @@ class Game {
 	}
 
 	public update() {
-		const isGameplay = this.game.mode === GameMode.Gameplay;
-		const isTransition = this.game.mode === GameMode.LevelTransition;
-		if (isGameplay || isTransition) {
-			this.checkCollision();
-			if (!isTransition) {
-				this.pickupItem(this.game.checkPickupX, this.game.checkPickupY);
-				this.updateDBullet();
-				this.updateEBullet();
-				this.verifyInput();
-			}
-			this.moveDave();
-			if (isGameplay) {
-				this.moveMonsters();
-				this.fireMonsters();
-				this.scrollScreen();
-				this.applyGravity();
-			}
-		}
+		this.checkCollision();
+		this.pickupItem(this.game.checkPickupX, this.game.checkPickupY);
+		this.updateDBullet();
+		this.updateEBullet();
+		this.verifyInput();
+		this.moveDave();
+		this.moveMonsters();
+		this.fireMonsters();
+		this.scrollScreen();
+		this.applyGravity();
 		this.updateLevel();
 		this.clearInput();
 	}
@@ -417,20 +409,21 @@ class Game {
 		renderer.startScreen(window);
 
 		this.drawWorld(renderer, assets);
-		if (this.game.mode === GameMode.Gameplay || this.game.mode === GameMode.LevelTransition) {
-			this.drawDave(renderer, assets);
-		}
-		if (this.game.mode === GameMode.Gameplay) {
-			this.drawMonsters(renderer, assets);
-			this.drawDaveBullet(renderer, assets);
-			this.drawMonsterBullet(renderer, assets);
-		}
+		this.drawDave(renderer, assets);
+		this.drawMonsters(renderer, assets);
+		this.drawDaveBullet(renderer, assets);
+		this.drawMonsterBullet(renderer, assets);
 		this.drawUI(renderer, assets);
 
 		renderer.render();
 	}
 
 	private checkCollision() {
+		if (this.game.mode === GameMode.Title) {
+			// No need to check collisions on title screen.
+			return;
+		}
+
 		this.game.collisionPoints = [
 			this.isClear(this.game.davePx + 4, this.game.davePy - 1),
 			this.isClear(this.game.davePx + 10, this.game.davePy - 1),
@@ -457,8 +450,8 @@ class Game {
 
 	/** Check if keyboard input is valid. */
 	private verifyInput() {
-		// Dave is dead. No input is valid.
-		if (this.game.daveDeadTimer) {
+		// Dave is dead or we're not in gameplay mode. No input is valid.
+		if (this.game.daveDeadTimer && this.game.mode !== GameMode.Gameplay) {
 			return;
 		}
 
@@ -505,6 +498,10 @@ class Game {
 	}
 
 	private moveDave() {
+		if (this.game.mode === GameMode.Title) {
+			return;
+		}
+
 		const MULTIPLIER = 1;
 
 		this.game.daveX = Game.onGrid(this.game.davePx);
@@ -573,6 +570,10 @@ class Game {
 	}
 
 	private moveMonsters() {
+		if (this.game.mode !== GameMode.Gameplay) {
+			return;
+		}
+
 		for (const monster of this.game.monsters) {
 			if (monster.type && !monster.deadTimer) {
 				if (!monster.nextPx && !monster.nextPy) {
@@ -611,6 +612,10 @@ class Game {
 	}
 
 	private fireMonsters() {
+		if (this.game.mode !== GameMode.Gameplay) {
+			return;
+		}
+
 		if (!this.game.eBulletPx && !this.game.eBulletPy) {
 			for (const monster of this.game.monsters) {
 				if (monster.type && this.isVisible(monster.monsterPx) && !monster.deadTimer) {
@@ -630,6 +635,10 @@ class Game {
 	}
 
 	private applyGravity() {
+		if (this.game.mode === GameMode.Title) {
+			return;
+		}
+
 		if (!this.game.daveJump && !this.game.onGround && !this.game.daveJetpack && !this.game.daveClimb) {
 			if (this.isClear(this.game.davePx + 4, this.game.davePy + 17)) {
 				this.game.davePy += 2;
@@ -748,6 +757,10 @@ class Game {
 	}
 
 	private scrollScreen() {
+		if (this.game.mode !== GameMode.Gameplay) {
+			return;
+		}
+
 		if (this.game.daveX - this.game.viewX >= 18) {
 			this.game.scrollX = 15;
 		}
@@ -807,7 +820,7 @@ class Game {
 	}
 
 	private pickupItem(gridX: number, gridY: number) {
-		if (!gridX || !gridY) {
+		if (!gridX || !gridY || (this.game.mode !== GameMode.Gameplay)) {
 			return;
 		}
 
@@ -830,7 +843,7 @@ class Game {
 	}
 
 	private updateDBullet() {
-		if (!this.game.dBulletPx && !this.game.dBulletPy) {
+		if (!this.game.dBulletPx && !this.game.dBulletPy || this.game.mode !== GameMode.Gameplay) {
 			return;
 		}
 
@@ -863,7 +876,7 @@ class Game {
 	}
 
 	private updateEBullet() {
-		if (!this.game.eBulletPx && !this.game.eBulletPy) {
+		if (!this.game.eBulletPx && !this.game.eBulletPy || this.game.mode !== GameMode.Gameplay) {
 			return;
 		}
 
@@ -953,6 +966,11 @@ class Game {
 	}
 
 	private drawDave(renderer: GameRenderer, assets: GameAssets) {
+		if (this.game.mode === GameMode.Title) {
+			// No Dave on the title screen
+			return;
+		}
+
 		const tileIndex = this.game.daveDeadTimer ?
 			Entity.Explosion.getFrame(this.game.tick) :
 			Entity.getDaveFrame(this.game.daveTick, {
@@ -971,6 +989,10 @@ class Game {
 	}
 
 	private drawMonsters(renderer: GameRenderer, assets: GameAssets) {
+		if (this.game.mode !== GameMode.Gameplay) {
+			return;
+		}
+
 		for (const monster of this.game.monsters) {
 			if (monster.type) {
 				const tileIndex = (monster.deadTimer ?
@@ -988,6 +1010,10 @@ class Game {
 	}
 
 	private drawDaveBullet(renderer: GameRenderer, assets: GameAssets) {
+		if (this.game.mode !== GameMode.Gameplay) {
+			return;
+		}
+
 		if (this.game.dBulletPx && this.game.dBulletPy) {
 			const tileIndex = this.game.dBulletDir > Direction.Neutral ? TileType.DaveBulletRight : TileType.DaveBulletLeft;
 			renderer.drawCanvas(assets.graphicsTiles[tileIndex], {
@@ -1000,6 +1026,10 @@ class Game {
 	}
 
 	private drawMonsterBullet(renderer: GameRenderer, assets: GameAssets) {
+		if (this.game.mode !== GameMode.Gameplay) {
+			return;
+		}
+
 		if (this.game.eBulletPx && this.game.eBulletPy) {
 			const tileIndex = this.game.eBulletDir > Direction.Neutral ? TileType.MonsterBulletRight : TileType.MonsterBulletLeft;
 			renderer.drawCanvas(assets.graphicsTiles[tileIndex], {
@@ -1171,6 +1201,7 @@ class Game {
 			} else if (entity.isHazard && !this.game.daveDeadTimer) {
 				this.game.daveDeadTimer = 30;
 			} else if (this.game.mode === GameMode.LevelTransition && gridX >= 20) {
+				// Dave walks off the right edge of the screen during transition = new level
 				this.game.nextLevel = true;
 			}
 		}
