@@ -65,6 +65,7 @@ interface GameState {
 	daveJump: boolean;
 	jumpTimer: number;
 	daveDeadTimer: number;
+	daveStartTimer: number;
 	jetpackDelay: number;
 	checkPickupX: number;
 	checkPickupY: number;
@@ -118,6 +119,8 @@ function disallowedModes(...modes: GameMode[]) {
 
 class Game {
 	private static readonly TILE_SIZE = 16;
+	/** Amount of time that the Dave spends blinking at the start of the level. */
+	private static readonly START_TIMER_LENGTH_TICKS = 80;
 	private static readonly PATH_END = 0xfffffff80 | (0xea & 0x7f);	// The path end is at 0xea but we need to convert it to signed.
 	private static readonly FONT_SIZE = (Game.TILE_SIZE - 2) / 2;
 
@@ -209,6 +212,7 @@ class Game {
 		this.game.daveFire = false;
 		this.game.daveJetpack = false;
 		this.game.daveDeadTimer = 0;
+		this.game.daveStartTimer = Game.START_TIMER_LENGTH_TICKS;
 		this.game.trophy = false;
 		this.game.gun = false;
 		this.game.jetpack = 0;
@@ -477,8 +481,8 @@ class Game {
 	/** Check if keyboard input is valid. */
 	@allowedModes(GameMode.Gameplay)
 	private verifyInput() {
-		// Dave is dead: no input is valid.
-		if (this.game.daveDeadTimer) {
+		// Dave is dead or the level is starting up: no input is valid.
+		if (this.game.daveDeadTimer || this.game.daveStartTimer) {
 			return;
 		}
 
@@ -595,39 +599,41 @@ class Game {
 
 	@allowedModes(GameMode.Gameplay)
 	private moveMonsters() {
-		for (const monster of this.game.monsters) {
-			if (monster.type && !monster.deadTimer) {
-				if (!monster.nextPx && !monster.nextPy) {
-					monster.nextPx = this.currentLevel.path[monster.pathIndex];
-					monster.nextPy = this.currentLevel.path[monster.pathIndex + 1];
-					monster.pathIndex += 2;
-				}
+		if (!this.game.daveStartTimer) {	// TODO: Verify how monsters behave when you lose a life
+			for (const monster of this.game.monsters) {
+				if (monster.type && !monster.deadTimer) {
+					if (!monster.nextPx && !monster.nextPy) {
+						monster.nextPx = this.currentLevel.path[monster.pathIndex];
+						monster.nextPy = this.currentLevel.path[monster.pathIndex + 1];
+						monster.pathIndex += 2;
+					}
 
-				if (monster.nextPx === Game.PATH_END && monster.nextPy === Game.PATH_END) {
-					monster.nextPx = this.currentLevel.path[0];
-					monster.nextPy = this.currentLevel.path[1];
-					monster.pathIndex = 2;
-				}
+					if (monster.nextPx === Game.PATH_END && monster.nextPy === Game.PATH_END) {
+						monster.nextPx = this.currentLevel.path[0];
+						monster.nextPy = this.currentLevel.path[1];
+						monster.pathIndex = 2;
+					}
 
-				if (monster.nextPx < 0) {
-					monster.monsterPx -= 1;
-					monster.nextPx++;
-				}
-				if (monster.nextPx > 0) {
-					monster.monsterPx += 1;
-					monster.nextPx--;
-				}
-				if (monster.nextPy < 0) {
-					monster.monsterPy -= 1;
-					monster.nextPy++;
-				}
-				if (monster.nextPy > 0) {
-					monster.monsterPy += 1;
-					monster.nextPy--;
-				}
+					if (monster.nextPx < 0) {
+						monster.monsterPx -= 1;
+						monster.nextPx++;
+					}
+					if (monster.nextPx > 0) {
+						monster.monsterPx += 1;
+						monster.nextPx--;
+					}
+					if (monster.nextPy < 0) {
+						monster.monsterPy -= 1;
+						monster.nextPy++;
+					}
+					if (monster.nextPy > 0) {
+						monster.monsterPy += 1;
+						monster.nextPy--;
+					}
 
-				monster.monsterX = Game.onGrid(monster.monsterPx);
-				monster.monsterY = Game.onGrid(monster.monsterPy);
+					monster.monsterX = Game.onGrid(monster.monsterPx);
+					monster.monsterY = Game.onGrid(monster.monsterPy);
+				}
 			}
 		}
 	}
@@ -654,7 +660,7 @@ class Game {
 
 	@disallowedModes(GameMode.Title)
 	private applyGravity() {
-		if (!this.game.daveJump && !this.game.onGround && !this.game.daveJetpack && !this.game.daveClimb) {
+		if (!this.game.daveJump && !this.game.onGround && !this.game.daveJetpack && !this.game.daveClimb && !this.game.daveStartTimer) {
 			if (this.isClear(this.game.davePx + 4, this.game.davePy + 17)) {
 				this.game.davePy += 2;
 			} else {
@@ -686,6 +692,10 @@ class Game {
 		this.game.tick++;
 		if (this.game.tick >= Number.MAX_VALUE) {
 			this.game.tick = 0;
+		}
+
+		if (this.game.daveStartTimer) {
+			this.game.daveStartTimer--;
 		}
 
 		if (this.game.mode === GameMode.LevelTransition) {
@@ -759,6 +769,7 @@ class Game {
 
 		this.game.davePx = this.game.daveX * Game.TILE_SIZE;
 		this.game.davePy = this.game.daveY * Game.TILE_SIZE;
+		this.game.daveStartTimer = Game.START_TIMER_LENGTH_TICKS;
 	}
 
 	private clearInput() {
@@ -982,6 +993,10 @@ class Game {
 
 	@disallowedModes(GameMode.Title)
 	private drawDave(renderer: GameRenderer, assets: GameAssets) {
+		if (this.game.mode === GameMode.Gameplay && this.game.daveStartTimer && !(Math.floor(this.game.daveStartTimer / 10) % 2)) {
+			// Have Dave blink on level start by not drawing him if daveStartTimer is at an even number of tens.
+			return;
+		}
 		const tileIndex = this.game.daveDeadTimer ?
 			Entity.Explosion.getFrame(this.game.tick) :
 			Entity.getDaveFrame(this.game.daveTick, {
